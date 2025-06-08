@@ -1,5 +1,4 @@
 ﻿using System.Security.Claims;
-using System.Threading.Tasks;
 using financeTrackerBackned.Data;
 using financeTrackerBackned.Domain;
 using financeTrackerBackned.Dtos;
@@ -32,8 +31,8 @@ namespace financeTrackerBackned.Controllers
                 return Unauthorized(new { error = "Erorr decoding token!, Login and try again!!" });
             try
             {
-                var Transaction = await _transactionService.AddOne(transaction, Convert.ToInt32(userId));
-                return CreatedAtAction(nameof(GetTransaction), new { Id = transaction.Id }, transaction);
+                var addedTransaction = await _transactionService.AddOne(transaction, Convert.ToInt32(userId));
+                return CreatedAtAction(nameof(GetTransaction), new { Id = transaction.Id }, addedTransaction);
             }
             catch (Exception ex)
             {
@@ -42,14 +41,14 @@ namespace financeTrackerBackned.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<List<Transaction>>> GetAllTransactions()
+        public async Task<ActionResult<List<Transaction>>> GetAllTransactions([FromQuery]GetTrasactionsQueryParams queryParams)
         {
             string? userId = _httpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (userId == null)
                 return Unauthorized(new { error = "Erorr decoding token!, Login and try again!!" });
             try
             {
-                var transactions = await _transactionService.GetAll(Convert.ToInt32(userId));
+                var transactions = await _transactionService.GetAll(Convert.ToInt32(userId),queryParams);
                 return Ok(transactions);
             }
             catch (Exception ex)
@@ -80,51 +79,42 @@ namespace financeTrackerBackned.Controllers
         }
 
         [HttpPut]
-        public IActionResult UpdateTransaction([FromBody] TransactionDto trasaction)
+        public async Task<IActionResult> UpdateTransaction([FromBody] TransactionDto trasaction)
         {
-            var trans = _dataContext.Transactions.Find(trasaction.Id);
-            if (trans == null) return NotFound();
-            trans.Amount = trasaction.Amount;
-            trans.Date = trasaction.Date;
-            trans.Category = trasaction.Category.ToString();
-            trans.Date = trasaction.Date;
-            trans.Description = trasaction.Description;
-
-            _dataContext.Transactions.Update(trans);
-            _dataContext.SaveChanges();
-            return Ok();
+            string? userId = _httpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (userId == null)
+                return Unauthorized(new { error = "Erorr decoding token!, Login and try again!!" });
+            try
+            {
+                var transactiontoUpdate = await _transactionService.GetOne(trasaction.Id);
+                if (transactiontoUpdate == null)
+                    return NotFound(new { error = "transaction with given Id not found!!" });
+                if (transactiontoUpdate.UserId != Convert.ToInt32(userId))
+                    return Unauthorized(new { error = "You donot have access to update this transaction!!" });
+                var updatedTransaction = await _transactionService.UpdateOne(transactiontoUpdate, trasaction);
+                return Ok(updatedTransaction);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = ex.Message });
+            }
         }
 
         [HttpDelete("{id}")]
-        public IActionResult DeleteTransaction(int id)
+        public async Task<IActionResult> DeleteTransaction(int id)
         {
-            var transaction = _dataContext.Transactions.FirstOrDefault(t => t.Id == id);
-            if (transaction == null) return NotFound();
-            _dataContext.Transactions.Remove(transaction);
-            _dataContext.SaveChanges();
+            string? userId = _httpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (userId == null)
+                return Unauthorized(new { error = "Erorr decoding token!, Login and try again!!" });
+
+            var transactionTodelete = await _transactionService.GetOne(id);
+            if (transactionTodelete == null)
+                return NotFound(new { error = "transaction with given Id not found!!" });
+            if (transactionTodelete.UserId != Convert.ToInt32(userId))
+                return Unauthorized(new { error = "You donot have access to Delete this transaction!!" });
+
+            await _transactionService.DeleteOne(transactionTodelete);
             return Ok();
-        }
-
-        [HttpGet("type/{type}")]
-        public IActionResult GetTransactionByType(string type)
-        {
-            var transactions = _dataContext.Transactions.Where(t => t.Type == type).ToList();
-            return Ok(transactions);
-        }
-
-        [HttpGet("catageory/{cat}")]
-        public IActionResult GetTransactionByCategory(string cat)
-        {
-            var transactions = _dataContext.Transactions.Where(t => t.Category == cat).ToList();
-            return Ok(transactions);
-        }
-
-        [HttpGet("date/{date}")]
-        public IActionResult GetTransactionByDate(DateOnly date)
-        {
-            var transactions = _dataContext.Transactions.Where(t => t.Date == date).ToList();
-
-            return Ok(transactions);
         }
     }
 }
