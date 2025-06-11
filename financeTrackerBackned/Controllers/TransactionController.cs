@@ -1,6 +1,4 @@
 ﻿using System.Security.Claims;
-using financeTrackerBackned.Data;
-using financeTrackerBackned.Domain;
 using financeTrackerBackned.Dtos;
 using financeTrackerBackned.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -13,12 +11,10 @@ namespace financeTrackerBackned.Controllers
     [Authorize]
     public class TransactionController : ControllerBase
     {
-        private readonly DataContext _dataContext;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly TransactionService _transactionService;
-        public TransactionController(DataContext dataContext, IHttpContextAccessor httpContextAccessor, TransactionService transactionService)
+        public TransactionController(IHttpContextAccessor httpContextAccessor, TransactionService transactionService)
         {
-            _dataContext = dataContext;
             _httpContextAccessor = httpContextAccessor;
             _transactionService = transactionService;
         }
@@ -41,14 +37,14 @@ namespace financeTrackerBackned.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<List<Transaction>>> GetAllTransactions([FromQuery]GetTrasactionsQueryParams queryParams)
+        public async Task<IActionResult> GetAllTransactions([FromQuery] GetTrasactionsQueryParams queryParams)
         {
             string? userId = _httpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (userId == null)
                 return Unauthorized(new { error = "Erorr decoding token!, Login and try again!!" });
             try
             {
-                var transactions = await _transactionService.GetAll(Convert.ToInt32(userId),queryParams);
+                var transactions = await _transactionService.GetAll(Convert.ToInt32(userId), queryParams);
                 return Ok(transactions);
             }
             catch (Exception ex)
@@ -58,7 +54,7 @@ namespace financeTrackerBackned.Controllers
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult> GetTransaction(int id)
+        public async Task<IActionResult> GetTransaction(int id)
         {
             string? userId = _httpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (userId == null)
@@ -100,21 +96,27 @@ namespace financeTrackerBackned.Controllers
             }
         }
 
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteTransaction(int id)
+        [HttpDelete("{transactionId}")]
+        public async Task<IActionResult> DeleteTransaction(int transactionId)
         {
             string? userId = _httpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (userId == null)
                 return Unauthorized(new { error = "Erorr decoding token!, Login and try again!!" });
+            try
+            {
+                var transactionToDelete = await _transactionService.GetOne(transactionId);
+                if (transactionToDelete == null)
+                    return NotFound(new { error = "transaction with given Id not found!!" });
+                if (transactionToDelete.UserId != Convert.ToInt32(userId))
+                    return Unauthorized(new { error = "You donot have access to Delete this transaction!!" });
 
-            var transactionTodelete = await _transactionService.GetOne(id);
-            if (transactionTodelete == null)
-                return NotFound(new { error = "transaction with given Id not found!!" });
-            if (transactionTodelete.UserId != Convert.ToInt32(userId))
-                return Unauthorized(new { error = "You donot have access to Delete this transaction!!" });
-
-            await _transactionService.DeleteOne(transactionTodelete);
-            return Ok();
+                await _transactionService.DeleteOne(transactionToDelete);
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = ex.Message });
+            }
         }
     }
 }

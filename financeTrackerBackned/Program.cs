@@ -57,6 +57,8 @@ builder.Services.AddDbContext<DataContext>(options =>
 
 var app = builder.Build();
 
+app.MapGet("/",()=>"Hlo!!");
+
 app.UseCors("localhost");
 
 app.UseHttpsRedirection();

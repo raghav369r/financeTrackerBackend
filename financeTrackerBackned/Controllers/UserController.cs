@@ -27,7 +27,7 @@ namespace financeTrackerBackned.Controllers
                 var user = await _userService.Login(_user);
                 if (user is User)
                     return Ok(new { token = _jwtService.GenerateJwtToken((User)user) });
-                return BadRequest(new { message = "Email and Password doesn't match!!" });
+                return Unauthorized(new { message = "Email and Password doesn't match!!" });
             }
             catch (Exception ex)
             {

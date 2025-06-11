@@ -1,6 +1,6 @@
 @financeTrackerBackned_HostAddress = http://localhost:5211
 
-GET {{financeTrackerBackned_HostAddress}}/weatherforecast/
+GET {{financeTrackerBackned_HostAddress}}/
 Accept: application/json
 
 ###

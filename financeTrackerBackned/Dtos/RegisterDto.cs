@@ -7,7 +7,7 @@ namespace financeTrackerBackned.Dtos
         [Required]
         public string Email { set; get; }
         [Required]
-        [MinLength(5, ErrorMessage = "Password must be of size atleast 5!!")]
+        [MinLength(5, ErrorMessage = "FullName must be of size atleast 5!!")]
         public string FullName { set; get; }
 
         [Required]
