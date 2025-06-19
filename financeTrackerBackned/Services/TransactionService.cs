@@ -22,14 +22,12 @@ namespace financeTrackerBackned.Services
 
     public async Task<List<Transaction>> GetAll(int userId, GetTrasactionsQueryParams queryParams)
     {
-      Console.WriteLine(queryParams.Date);
-      Console.WriteLine(queryParams.Category);
-      Console.WriteLine(queryParams.Type);
       var transactions = await _dataContext.Transactions
                             .Where(t => t.UserId == userId)
                             .Where(t => queryParams.Date == DateOnly.Parse("0001/01/01") || t.Date == queryParams.Date)
                             .Where(t => queryParams.Category == "" || t.Category == queryParams.Category)
                             .Where(t => queryParams.Type == "" || t.Type == queryParams.Type)
+                            .OrderByDescending(t => t.Date)
                             .ToListAsync();
       return transactions;
     }

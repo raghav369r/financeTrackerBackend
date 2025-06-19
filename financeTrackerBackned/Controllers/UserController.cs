@@ -42,7 +42,7 @@ namespace financeTrackerBackned.Controllers
             try
             {
                 var resut = await _userService.Register(_user);
-                if (resut is User) return Ok(_jwtService.GenerateJwtToken((User)resut));
+                if (resut is User) return Ok(new { token = _jwtService.GenerateJwtToken((User)resut) });
                 else if (resut is UserAlreadyExistError)
                     return BadRequest(new { error = "User already exist" });
                 return BadRequest(new { error = "An unknown error occured!" });

@@ -27,7 +27,7 @@ namespace financeTrackerBackned.Controllers
             if (userId == null)
                 return Unauthorized(new { error = "Erorr decoding token!, Login and try again!!" });
 
-            var overallSummary = await _dataContext.TransactionsSummary.FromSqlRaw("Select [Type],sum(Amount) as Sum from Transactions where Transactions.UserId={0} GROUP BY [Type]", 5)
+            var overallSummary = await _dataContext.TransactionsSummary.FromSqlRaw("Select [Type],sum(Amount) as Sum from Transactions where Transactions.UserId={0} GROUP BY [Type]", userId)
                     .ToListAsync();
             var monthlySummary = await _dataContext.MonthlySummary.FromSqlRaw(@"SELECT [Date],
                     SUM(CASE WHEN [Type] = {0} THEN Amount ELSE 0 END) AS Income,
